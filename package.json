@@ -1,0 +1,17 @@
+{
+  "name": "react-experiment-builder",
+  "version": "0.0.1",
+  "description": "Online experiment builder using React",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tony Juntao Hu",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.12.11",
+    "typescript": "^5.4.5"
+  }
+}
