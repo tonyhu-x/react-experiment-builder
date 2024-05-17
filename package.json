@@ -10,6 +10,9 @@
   },
   "author": "Tony Juntao Hu",
   "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.3.1"
+  },
   "devDependencies": {
     "@eslint/js": "^9.2.0",
     "@stylistic/eslint-plugin": "^2.1.0",
