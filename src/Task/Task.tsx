@@ -2,9 +2,14 @@ import React, { useState, createContext, useCallback } from 'react';
 
 export const TaskHelperContext = createContext(() => {});
 
-export function Task({ children }: { children: React.ReactNode }) {
+export type TaskProps = {
+  id: number;
+  children: React.ReactNode;
+};
+
+export function Task(props: TaskProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const childArray = React.Children.toArray(children);
+  const childArray = React.Children.toArray(props.children);
 
   const advance = useCallback(() => {
     if (currentIndex >= childArray.length - 1) {
