@@ -1,6 +1,10 @@
 import React, { useState, createContext, useCallback, useMemo } from 'react';
 import { db } from '../database.js';
 
+export function foo() {
+  return 2;
+}
+
 interface TaskControls {
   advance: () => void;
   addResult: (key: string, val: string) => void;

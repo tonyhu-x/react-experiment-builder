@@ -13,5 +13,13 @@ export default [
   stylistic.configs.customize({ semi: true }),
   {
     languageOptions: { globals: globals.browser },
+    overrides: [
+      {
+        files: ['tests/**/*'],
+        env: {
+          jest: true,
+        },
+      },
+    ],
   },
 ];
