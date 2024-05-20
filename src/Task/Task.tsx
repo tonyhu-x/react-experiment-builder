@@ -1,6 +1,15 @@
-import React, { useState, createContext, useCallback } from 'react';
+import React, { useState, createContext, useCallback, useMemo } from 'react';
+import { db } from '../database.js';
 
-export const TaskHelperContext = createContext(() => {});
+interface TaskControls {
+  advance: () => void;
+  addResult: (key: string, val: string) => void;
+}
+
+export const TaskControlsContext = createContext({
+  advance: () => { throw new Error('Task ancestor component not found.'); },
+  addResult: () => { throw new Error('Task ancestor component not found.'); },
+} as TaskControls);
 
 export type TaskProps = {
   id: number;
@@ -18,9 +27,19 @@ export function Task(props: TaskProps) {
     setCurrentIndex(currentIndex + 1);
   }, [currentIndex]);
 
+  const addResult = useCallback(async (key: string, val: string) => {
+    await db.results.add({ taskId: props.id, key: key, val: val });
+    // TODO: Do I need error handling?
+  }, [props.id]);
+
+  const taskControls = useMemo(() => ({
+    advance,
+    addResult,
+  }), [advance, addResult]);
+
   return (
-    <TaskHelperContext.Provider value={advance}>
+    <TaskControlsContext.Provider value={taskControls}>
       {childArray[currentIndex]}
-    </TaskHelperContext.Provider>
+    </TaskControlsContext.Provider>
   );
 };

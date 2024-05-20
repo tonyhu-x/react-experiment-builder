@@ -25,5 +25,9 @@
     "typescript": "^5.4.5",
     "typescript-eslint": "^7.9.0"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "dexie": "^4.0.4",
+    "dexie-react-hooks": "^1.1.7"
+  }
 }
