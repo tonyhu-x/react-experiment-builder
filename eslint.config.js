@@ -14,6 +14,18 @@ export default [
   stylistic.configs.customize({ semi: true }),
   {
     files: [
+      'src/**/*.tsx',
+      'src/**/*.jsx',
+    ],
+    plugins: {
+      '@stylistic': stylistic,
+    },
+    rules: {
+      '@stylistic/jsx-quotes': ['error', 'prefer-single'],
+    },
+  },
+  {
+    files: [
       'src/**/*.test.ts',
       'src/**/*.test.tsx',
     ],
