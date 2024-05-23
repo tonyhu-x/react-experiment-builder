@@ -6,10 +6,12 @@ interface TaskControls {
   addResult: (key: string, val: string) => void;
 }
 
-export const TaskControlsContext = createContext({
+const TaskControlsDefault: TaskControls = {
   advance: () => { throw new Error('Task ancestor component not found.'); },
   addResult: () => { throw new Error('Task ancestor component not found.'); },
-} as TaskControls);
+};
+
+export const TaskControlsContext = createContext(TaskControlsDefault);
 
 export type TaskProps = {
   id: number;
