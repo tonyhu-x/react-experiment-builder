@@ -19,9 +19,6 @@ type ExperimentProps = {
   children: React.ReactNode;
 };
 
-// export const ExperimentContext = createContext()
-//
-
 export function Experiment(props: ExperimentProps) {
   // valid user ID must not be empty
   const [userId, setUserId] = useState('');
