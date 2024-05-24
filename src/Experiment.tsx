@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { genUserIdDefault } from './utils.js';
 import { Result, db } from './database.js';
+import { DefaultEndScreen } from './DefaultEndScreen.js';
 
 interface ExperimentControls {
   hasExperiment: boolean;
@@ -17,24 +18,25 @@ export const ExperimentControlsContext = createContext(ExperimentControlsDefault
 export type ExperimentProps = {
   genUserId?: () => Promise<string>;
   onResultAdded?: (result: Result) => void;
+  endScreen?: React.ReactNode;
   children: React.ReactNode;
 };
 
-export function Experiment(props: ExperimentProps) {
+export function Experiment({
+  endScreen = <DefaultEndScreen />,
+  genUserId = genUserIdDefault,
+  ...otherProps
+}: ExperimentProps) {
   // valid user ID must not be empty
   const [userId, setUserId] = useState('');
+  const [ended, setEnded] = useState(false);
 
   useEffect(() => {
     if (userId == '') {
-      if (props.genUserId) {
-        props.genUserId()
-          .then((id) => {
-            setUserId(id);
-          });
-      }
-      else {
-        setUserId(genUserIdDefault());
-      }
+      genUserId()
+        .then((id) => {
+          setUserId(id);
+        });
     }
   }, []);
 
@@ -43,10 +45,10 @@ export function Experiment(props: ExperimentProps) {
     await db.results.add(result);
     // TODO: Do I need error handling?
 
-    if (props.onResultAdded) {
-      props.onResultAdded(result);
+    if (otherProps.onResultAdded) {
+      otherProps.onResultAdded(result);
     }
-  }, [userId, props.onResultAdded]);
+  }, [userId, otherProps.onResultAdded]);
 
   const experimentControls = useMemo(() => ({
     hasExperiment: true,
@@ -55,7 +57,7 @@ export function Experiment(props: ExperimentProps) {
 
   return (
     <ExperimentControlsContext.Provider value={experimentControls}>
-      {props.children}
+      {ended ? endScreen : otherProps.children}
     </ExperimentControlsContext.Provider>
   );
 };
