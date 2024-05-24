@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { useContext } from 'react';
 
 import { Task, TaskControlsContext } from './Task.js';
+import { Experiment } from '../Experiment.js';
 
 function AdvanceButton() {
   const taskControls = useContext(TaskControlsContext);
@@ -22,10 +23,12 @@ function TestComponent({ text }: { text: string }) {
 
 test('Task renders the correct child', () => {
   render(
-    <Task id={0}>
-      <TestComponent text='Hello' />
-      <TestComponent text='World' />
-    </Task>,
+    <Experiment>
+      <Task id='test'>
+        <TestComponent text='Hello' />
+        <TestComponent text='World' />
+      </Task>
+    </Experiment>,
   );
 
   expect(screen.queryByText('Hello')).not.toBeNull();
