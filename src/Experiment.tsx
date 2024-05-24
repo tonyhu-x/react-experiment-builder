@@ -1,6 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { genUserIdDefault } from './utils.js';
-import { db } from './database.js';
+import { Result, db } from './database.js';
 
 interface ExperimentControls {
   hasExperiment: boolean;
@@ -16,6 +16,7 @@ export const ExperimentControlsContext = createContext(ExperimentControlsDefault
 
 type ExperimentProps = {
   genUserId?: () => Promise<string>;
+  onResultAdded?: (result: Result) => void;
   children: React.ReactNode;
 };
 
@@ -38,9 +39,14 @@ export function Experiment(props: ExperimentProps) {
   }, []);
 
   const addResult = useCallback(async (taskId: string, key: string, val: string) => {
-    await db.results.add({ taskId, userId, key, val });
+    const result: Result = { taskId, userId, key, val };
+    await db.results.add(result);
     // TODO: Do I need error handling?
-  }, [userId]);
+
+    if (props.onResultAdded) {
+      props.onResultAdded(result);
+    }
+  }, [userId, props.onResultAdded]);
 
   const experimentControls = useMemo(() => ({
     hasExperiment: true,
