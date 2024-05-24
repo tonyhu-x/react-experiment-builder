@@ -19,7 +19,7 @@ export function Admin() {
     const csv = stringMatrixToCsv(
       results.map(result => [
         String(result.id),
-        String(result.taskId),
+        result.taskId,
         result.key,
         result.val,
       ]),
