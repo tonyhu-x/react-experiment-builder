@@ -14,7 +14,7 @@ const ExperimentControlsDefault: ExperimentControls = {
 
 export const ExperimentControlsContext = createContext(ExperimentControlsDefault);
 
-type ExperimentProps = {
+export type ExperimentProps = {
   genUserId?: () => Promise<string>;
   onResultAdded?: (result: Result) => void;
   children: React.ReactNode;
