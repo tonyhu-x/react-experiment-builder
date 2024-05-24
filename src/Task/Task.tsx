@@ -1,5 +1,5 @@
-import React, { useState, createContext, useCallback, useMemo } from 'react';
-import { db } from '../database.js';
+import React, { useState, createContext, useCallback, useMemo, useContext, useEffect } from 'react';
+import { ExperimentControlsContext } from '../Experiment.js';
 
 interface TaskControls {
   advance: () => void;
@@ -14,13 +14,21 @@ const TaskControlsDefault: TaskControls = {
 export const TaskControlsContext = createContext(TaskControlsDefault);
 
 export type TaskProps = {
-  id: number;
+  id: string;
   children: React.ReactNode;
 };
 
 export function Task(props: TaskProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const childArray = React.Children.toArray(props.children);
+
+  const experimentControls = useContext(ExperimentControlsContext);
+
+  useEffect(() => {
+    if (!experimentControls.hasExperiment) {
+      throw new Error('Task must be a descendant node of Experiment.');
+    }
+  }, []);
 
   const advance = useCallback(() => {
     if (currentIndex >= childArray.length - 1) {
@@ -30,8 +38,7 @@ export function Task(props: TaskProps) {
   }, [currentIndex]);
 
   const addResult = useCallback(async (key: string, val: string) => {
-    await db.results.add({ taskId: props.id, key: key, val: val });
-    // TODO: Do I need error handling?
+    await experimentControls.addResult(props.id, key, val);
   }, [props.id]);
 
   const taskControls = useMemo(() => ({

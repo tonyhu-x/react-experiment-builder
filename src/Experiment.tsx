@@ -1,4 +1,18 @@
-import { useEffect, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { genUserIdDefault } from './utils.js';
+import { db } from './database.js';
+
+interface ExperimentControls {
+  hasExperiment: boolean;
+  addResult: (taskId: string, key: string, val: string) => void;
+}
+
+const ExperimentControlsDefault: ExperimentControls = {
+  hasExperiment: false,
+  addResult: () => { throw new Error('Experiment ancestor component not found.'); },
+};
+
+export const ExperimentControlsContext = createContext(ExperimentControlsDefault);
 
 type ExperimentProps = {
   genUserId?: () => Promise<string>;
@@ -7,16 +21,6 @@ type ExperimentProps = {
 
 // export const ExperimentContext = createContext()
 //
-const CHAR_SET = '123456789ABCDEFGHJKMNPQRSTUVWXYZ';
-
-/**
- * Code taken from https://dev.to/munawwar/shorter-unique-ids-4316.
- */
-function genUserIdDefault() {
-  return 'x'
-    .repeat(11)
-    .replace(/x/g, () => CHAR_SET[Math.trunc(Math.random() * 32)]);
-}
 
 export function Experiment(props: ExperimentProps) {
   // valid user ID must not be empty
@@ -36,7 +40,19 @@ export function Experiment(props: ExperimentProps) {
     }
   }, []);
 
+  const addResult = useCallback(async (taskId: string, key: string, val: string) => {
+    await db.results.add({ taskId, userId, key, val });
+    // TODO: Do I need error handling?
+  }, [userId]);
+
+  const experimentControls = useMemo(() => ({
+    hasExperiment: true,
+    addResult,
+  }), [addResult]);
+
   return (
-    <p>{userId}</p>
+    <ExperimentControlsContext.Provider value={experimentControls}>
+      {props.children}
+    </ExperimentControlsContext.Provider>
   );
 };

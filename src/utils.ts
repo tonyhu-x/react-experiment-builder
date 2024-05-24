@@ -23,3 +23,14 @@ export function downloadBlob(blob: Blob, filename: string) {
   pom.remove();
   URL.revokeObjectURL(url);
 }
+
+const CHAR_SET = '123456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+/**
+ * Code taken from https://dev.to/munawwar/shorter-unique-ids-4316.
+ */
+export function genUserIdDefault() {
+  return 'x'
+    .repeat(11)
+    .replace(/x/g, () => CHAR_SET[Math.trunc(Math.random() * 32)]);
+}
