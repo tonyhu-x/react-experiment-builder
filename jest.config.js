@@ -9,4 +9,5 @@ export default {
   moduleNameMapper: {
     '^(\\.\\.?\\/.+)\\.js$': '$1',
   },
+  testPathIgnorePatterns: ['/dist/', '/node_modules/'],
 };
