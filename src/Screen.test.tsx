@@ -1,14 +1,15 @@
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useContext } from 'react';
 
-import { Task, TaskControlsContext } from './Task.js';
-import { Experiment } from '../Experiment.js';
+import { Task } from './Task.js';
+import { Screen, ScreenControlsContext } from './Screen.js';
 
 function AdvanceButton() {
-  const taskControls = useContext(TaskControlsContext);
+  const screenControls = useContext(ScreenControlsContext);
 
   return (
-    <button onClick={taskControls.advance}>Click me</button>
+    <button onClick={screenControls.advance}>Click me</button>
   );
 }
 
@@ -21,14 +22,16 @@ function TestComponent({ text }: { text: string }) {
   );
 }
 
-test('Task renders the correct child', () => {
+test('The correct screen is rendered', () => {
   render(
-    <Experiment>
-      <Task id='test'>
+    <Task id='test'>
+      <Screen id='hello'>
         <TestComponent text='Hello' />
+      </Screen>
+      <Screen id='world'>
         <TestComponent text='World' />
-      </Task>
-    </Experiment>,
+      </Screen>
+    </Task>,
   );
 
   expect(screen.queryByText('Hello')).not.toBeNull();

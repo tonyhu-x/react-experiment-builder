@@ -5,7 +5,7 @@ import { DefaultEndScreen } from './DefaultEndScreen.js';
 
 interface ExperimentControls {
   hasExperiment: boolean;
-  addResult: (taskId: string, key: string, val: string) => void;
+  addResult: (taskId: string, screenId: string, key: string, val: string) => void;
 }
 
 const ExperimentControlsDefault: ExperimentControls = {
@@ -40,8 +40,8 @@ export function Experiment({
     }
   }, []);
 
-  const addResult = useCallback(async (taskId: string, key: string, val: string) => {
-    const result: Result = { taskId, userId, key, val };
+  const addResult = useCallback(async (taskId: string, screenId: string, key: string, val: string) => {
+    const result: Result = { taskId, screenId, userId, key, val };
     await db.results.add(result);
     // TODO: Do I need error handling?
 

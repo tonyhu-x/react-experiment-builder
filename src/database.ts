@@ -5,6 +5,7 @@ import { Dexie, Entity, type EntityTable } from 'dexie';
  */
 export interface Result {
   taskId: string;
+  screenId: string;
   userId: string;
   key: string;
   val: string;
@@ -15,6 +16,7 @@ export interface Result {
  */
 class ResultRow extends Entity<ExperimentDB> implements Result {
   taskId!: string;
+  screenId!: string;
   userId!: string;
   key!: string;
   val!: string;
@@ -30,7 +32,7 @@ class ExperimentDB extends Dexie {
   constructor() {
     super('ExperimentDB');
     this.version(1).stores({
-      results: '++id, taskId, userId, key, val',
+      results: '++id, taskId, screenId, userId, key, val',
     });
     this.results.mapToClass(ResultRow);
   }
