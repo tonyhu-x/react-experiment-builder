@@ -1,7 +1,8 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { genUserIdDefault } from './utils.js';
 import { Result, db } from './database.js';
-import { DefaultEndScreen } from './DefaultEndScreen.js';
+import { DefaultEndScreen, renderDefaultErrorScreen } from './defaults.js';
+import { createRoot } from 'react-dom/client';
 
 interface ExperimentControls {
   addResult: (taskId: string, screenId: string, key: string, val: string) => void;
@@ -17,11 +18,17 @@ export type ExperimentProps = {
   genUserId?: () => Promise<string>;
   onResultAdded?: (result: Result) => void;
   endScreen?: React.ReactNode;
+  useErrorHandling?: boolean;
+  renderErrorScreen?: (event: ErrorEvent | PromiseRejectionEvent) => React.ReactNode;
   children: React.ReactNode;
 };
 
+let errorHandlerEffectRun = false;
+
 export function Experiment({
   endScreen = <DefaultEndScreen />,
+  useErrorHandling = false,
+  renderErrorScreen = renderDefaultErrorScreen,
   genUserId = genUserIdDefault,
   ...otherProps
 }: ExperimentProps) {
@@ -35,6 +42,24 @@ export function Experiment({
         .then((id) => {
           setUserId(id);
         });
+    }
+  }, []);
+
+  function errorListener(event: ErrorEvent | PromiseRejectionEvent) {
+    document.body.innerHTML = '';
+    const newDiv = document.createElement('div');
+    const root = createRoot(newDiv);
+    root.render(
+      renderErrorScreen(event),
+    );
+    document.body.appendChild(newDiv);
+  }
+
+  useEffect(() => {
+    if (useErrorHandling && !errorHandlerEffectRun) {
+      errorHandlerEffectRun = true;
+      window.addEventListener('error', errorListener);
+      window.addEventListener('unhandledrejection', errorListener);
     }
   }, []);
 
