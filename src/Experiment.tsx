@@ -4,12 +4,10 @@ import { Result, db } from './database.js';
 import { DefaultEndScreen } from './DefaultEndScreen.js';
 
 interface ExperimentControls {
-  hasExperiment: boolean;
   addResult: (taskId: string, screenId: string, key: string, val: string) => void;
 }
 
 const ExperimentControlsDefault: ExperimentControls = {
-  hasExperiment: false,
   addResult: () => { throw new Error('Experiment ancestor component not found.'); },
 };
 
@@ -51,7 +49,6 @@ export function Experiment({
   }, [userId, otherProps.onResultAdded]);
 
   const experimentControls = useMemo(() => ({
-    hasExperiment: true,
     addResult,
   }), [addResult]);
 
