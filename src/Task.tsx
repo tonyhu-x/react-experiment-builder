@@ -40,25 +40,6 @@ function Task(props: TaskProps) {
     };
   }, []);
 
-  function updateCurrentScreen(id: string) {
-    screenRef.current = id;
-    forceUpdate();
-  };
-
-  const advance = useCallback(() => {
-    const curIndex = allScreensRef.current.indexOf(screenRef.current);
-    if (curIndex < allScreensRef.current.length - 1) {
-      updateCurrentScreen(allScreensRef.current[curIndex + 1]);
-    }
-    else {
-      experimentInternals.advance();
-    }
-  }, [screenRef, allScreensRef]);
-
-  const addResult = useCallback(async (screenId: string, key: string, val: string) => {
-    await experimentInternals.addResult(props.id, screenId, key, val);
-  }, [props.id, experimentInternals.addResult]);
-
   const registerScreen = useCallback((id: string) => {
     // no duplicate IDs allowed
     if (allScreensRef.current.includes(id)) {
@@ -84,6 +65,25 @@ function Task(props: TaskProps) {
       }
     }
   }, [screenRef, allScreensRef]);
+
+  function updateCurrentScreen(id: string) {
+    screenRef.current = id;
+    forceUpdate();
+  };
+
+  const advance = useCallback(() => {
+    const curIndex = allScreensRef.current.indexOf(screenRef.current);
+    if (curIndex < allScreensRef.current.length - 1) {
+      updateCurrentScreen(allScreensRef.current[curIndex + 1]);
+    }
+    else {
+      experimentInternals.advance();
+    }
+  }, [screenRef, allScreensRef]);
+
+  const addResult = useCallback(async (screenId: string, key: string, val: string) => {
+    await experimentInternals.addResult(props.id, screenId, key, val);
+  }, [props.id, experimentInternals.addResult]);
 
   const taskInternals = useMemo(() => ({
     currentScreen: screenRef.current,

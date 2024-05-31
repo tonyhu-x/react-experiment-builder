@@ -4,6 +4,8 @@ import { Result, db } from './database.js';
 import { DefaultEndScreen, renderDefaultErrorScreen } from './defaults.js';
 import { createRoot } from 'react-dom/client';
 
+let errorHandlerEffectRun = false;
+
 interface ExperimentInternals {
   currentTask: string;
   registerTask: (id: string) => void;
@@ -20,9 +22,9 @@ const ExperimentInternalsDefault: ExperimentInternals = {
   addResult: () => { throw new Error('Experiment ancestor component not found.'); },
 };
 
-export const ExperimentInternalsContext = createContext(ExperimentInternalsDefault);
+const ExperimentInternalsContext = createContext(ExperimentInternalsDefault);
 
-export type ExperimentProps = {
+type ExperimentProps = {
   genUserId?: () => Promise<string>;
   onResultAdded?: (result: Result) => void;
   endScreen?: React.ReactNode;
@@ -31,9 +33,7 @@ export type ExperimentProps = {
   children: React.ReactNode;
 };
 
-let errorHandlerEffectRun = false;
-
-export function Experiment({
+function Experiment({
   endScreen = <DefaultEndScreen />,
   useErrorHandling = false,
   renderErrorScreen = renderDefaultErrorScreen,
@@ -47,27 +47,17 @@ export function Experiment({
   const taskRef = useRef('');
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
-  function updateCurrentTask(id: string) {
-    taskRef.current = id;
-    forceUpdate();
-  };
-
-  const advance = useCallback(() => {
-    const curIndex = allTasksRef.current.indexOf(taskRef.current);
-    if (curIndex < allTasksRef.current.length - 1) {
-      updateCurrentTask(allTasksRef.current[curIndex + 1]);
-    }
-    else {
-      setEnded(true);
-    }
-  }, [taskRef, allTasksRef]);
-
   useEffect(() => {
     if (userId == '') {
       genUserId()
         .then((id) => {
           setUserId(id);
         });
+    }
+    if (useErrorHandling && !errorHandlerEffectRun) {
+      errorHandlerEffectRun = true;
+      window.addEventListener('error', errorListener);
+      window.addEventListener('unhandledrejection', errorListener);
     }
   }, []);
 
@@ -80,25 +70,6 @@ export function Experiment({
     );
     document.body.appendChild(newDiv);
   }
-
-  useEffect(() => {
-    if (useErrorHandling && !errorHandlerEffectRun) {
-      errorHandlerEffectRun = true;
-      window.addEventListener('error', errorListener);
-      window.addEventListener('unhandledrejection', errorListener);
-    }
-  }, []);
-
-  const addResult = useCallback(async (taskId: string, screenId: string, key: string, val: string) => {
-    const result: Result = { taskId, screenId, userId, key, val };
-    await db.results.add(result);
-    // TODO: Do I need error handling?
-
-    if (otherProps.onResultAdded) {
-      otherProps.onResultAdded(result);
-    }
-  }, [userId, otherProps.onResultAdded]);
-
   const registerTask = useCallback((id: string) => {
     // no duplicate IDs allowed
     if (allTasksRef.current.includes(id)) {
@@ -125,6 +96,31 @@ export function Experiment({
     }
   }, [taskRef, allTasksRef]);
 
+  function updateCurrentTask(id: string) {
+    taskRef.current = id;
+    forceUpdate();
+  };
+
+  const advance = useCallback(() => {
+    const curIndex = allTasksRef.current.indexOf(taskRef.current);
+    if (curIndex < allTasksRef.current.length - 1) {
+      updateCurrentTask(allTasksRef.current[curIndex + 1]);
+    }
+    else {
+      setEnded(true);
+    }
+  }, [taskRef, allTasksRef]);
+
+  const addResult = useCallback(async (taskId: string, screenId: string, key: string, val: string) => {
+    const result: Result = { taskId, screenId, userId, key, val };
+    await db.results.add(result);
+    // TODO: Do I need error handling?
+
+    if (otherProps.onResultAdded) {
+      otherProps.onResultAdded(result);
+    }
+  }, [userId, otherProps.onResultAdded]);
+
   const experimentInternals = useMemo(() => ({
     currentTask: taskRef.current,
     registerTask,
@@ -139,3 +135,5 @@ export function Experiment({
     </ExperimentInternalsContext.Provider>
   );
 };
+
+export { ExperimentInternalsContext, ExperimentProps, Experiment};
