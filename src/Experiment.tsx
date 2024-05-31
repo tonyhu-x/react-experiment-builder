@@ -1,18 +1,26 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { genUserIdDefault } from './utils.js';
 import { Result, db } from './database.js';
 import { DefaultEndScreen, renderDefaultErrorScreen } from './defaults.js';
 import { createRoot } from 'react-dom/client';
 
-interface ExperimentControls {
+interface ExperimentInternals {
+  currentTask: string;
+  registerTask: (id: string) => void;
+  unregisterTask: (id: string) => void;
+  advance: () => void;
   addResult: (taskId: string, screenId: string, key: string, val: string) => void;
 }
 
-const ExperimentControlsDefault: ExperimentControls = {
+const ExperimentInternalsDefault: ExperimentInternals = {
+  currentTask: '',
+  registerTask: () => { throw new Error('Experiment ancestor component not found.'); },
+  unregisterTask: () => { throw new Error('Experiment ancestor component not found.'); },
+  advance: () => { throw new Error('Experiment ancestor component not found.'); },
   addResult: () => { throw new Error('Experiment ancestor component not found.'); },
 };
 
-export const ExperimentControlsContext = createContext(ExperimentControlsDefault);
+export const ExperimentInternalsContext = createContext(ExperimentInternalsDefault);
 
 export type ExperimentProps = {
   genUserId?: () => Promise<string>;
@@ -35,6 +43,24 @@ export function Experiment({
   // valid user ID must not be empty
   const [userId, setUserId] = useState('');
   const [ended, setEnded] = useState(false);
+  const allTasksRef = useRef<string[]>([]);
+  const taskRef = useRef('');
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+
+  function updateCurrentTask(id: string) {
+    taskRef.current = id;
+    forceUpdate();
+  };
+
+  const advance = useCallback(() => {
+    const curIndex = allTasksRef.current.indexOf(taskRef.current);
+    if (curIndex < allTasksRef.current.length - 1) {
+      updateCurrentTask(allTasksRef.current[curIndex + 1]);
+    }
+    else {
+      setEnded(true);
+    }
+  }, [taskRef, allTasksRef]);
 
   useEffect(() => {
     if (userId == '') {
@@ -73,13 +99,43 @@ export function Experiment({
     }
   }, [userId, otherProps.onResultAdded]);
 
-  const experimentControls = useMemo(() => ({
+  const registerTask = useCallback((id: string) => {
+    // no duplicate IDs allowed
+    if (allTasksRef.current.includes(id)) {
+      throw new Error(`Task ID '${id}' already exists.`);
+    }
+    console.log(`Task registered with ID ${id}.`);
+    const newTasks = [...allTasksRef.current, id];
+    allTasksRef.current = newTasks;
+    // if this is the first task, select it
+    if (newTasks.length == 1) {
+      updateCurrentTask(id);
+    }
+  }, [taskRef, allTasksRef]);
+
+  const unregisterTask = useCallback((id: string) => {
+    // do nothing if ID is not found
+    if (allTasksRef.current.includes(id)) {
+      console.log(`Task unregistered with ID ${id}.`);
+      const newTasks = allTasksRef.current.filter(task => task != id);
+      allTasksRef.current = newTasks;
+      if (newTasks.length == 0) {
+        updateCurrentTask('');
+      }
+    }
+  }, [taskRef, allTasksRef]);
+
+  const experimentInternals = useMemo(() => ({
+    currentTask: taskRef.current,
+    registerTask,
+    unregisterTask,
+    advance,
     addResult,
-  }), [addResult]);
+  }), [taskRef.current, registerTask, unregisterTask, advance, addResult]);
 
   return (
-    <ExperimentControlsContext.Provider value={experimentControls}>
+    <ExperimentInternalsContext.Provider value={experimentInternals}>
       {ended ? endScreen : otherProps.children}
-    </ExperimentControlsContext.Provider>
+    </ExperimentInternalsContext.Provider>
   );
 };

@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useMemo, useContext, useEffect, useRef, useReducer } from 'react';
-import { ExperimentControlsContext } from './Experiment.js';
+import { ExperimentInternalsContext } from './Experiment.js';
 
 interface TaskInternals {
   currentScreen: string;
@@ -28,7 +28,17 @@ function Task(props: TaskProps) {
   const allScreensRef = useRef<string[]>([]);
   const screenRef = useRef('');
   const [, forceUpdate] = useReducer(x => x + 1, 0);
-  const experimentControls = useContext(ExperimentControlsContext);
+  const experimentInternals = useContext(ExperimentInternalsContext);
+
+  useEffect(() => {
+    if (props.id == '') {
+      throw new Error('Task ID cannot be an empty string.');
+    }
+    experimentInternals.registerTask(props.id);
+    return () => {
+      experimentInternals.unregisterTask(props.id);
+    };
+  }, []);
 
   function updateCurrentScreen(id: string) {
     screenRef.current = id;
@@ -41,13 +51,13 @@ function Task(props: TaskProps) {
       updateCurrentScreen(allScreensRef.current[curIndex + 1]);
     }
     else {
-      // advance to next task
+      experimentInternals.advance();
     }
   }, [screenRef, allScreensRef]);
 
   const addResult = useCallback(async (screenId: string, key: string, val: string) => {
-    await experimentControls.addResult(props.id, screenId, key, val);
-  }, [props.id, experimentControls.addResult]);
+    await experimentInternals.addResult(props.id, screenId, key, val);
+  }, [props.id, experimentInternals.addResult]);
 
   const registerScreen = useCallback((id: string) => {
     // no duplicate IDs allowed
@@ -85,7 +95,7 @@ function Task(props: TaskProps) {
 
   return (
     <TaskInternalsContext.Provider value={taskInternals}>
-      {props.children}
+      {experimentInternals.currentTask == props.id && props.children}
     </TaskInternalsContext.Provider>
   );
 };
