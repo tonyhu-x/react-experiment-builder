@@ -10,6 +10,10 @@
   },
   "author": "Tony Juntao Hu",
   "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
   "peerDependencies": {
     "react": "^18.3.1"
   },
