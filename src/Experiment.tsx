@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useMemo, useReducer, useRef, use
 import { genUserIdDefault } from './utils.js';
 import { Result, db } from './database.js';
 import { DefaultEndScreen, renderDefaultErrorScreen } from './defaults.js';
+import { LoginOptions } from './login.js';
 import { createRoot } from 'react-dom/client';
 
 let errorHandlerEffectRun = false;
@@ -14,6 +15,10 @@ interface ExperimentInternals {
   addResult: (taskId: string, screenId: string, key: string, val: string) => void;
 }
 
+interface ExperimentControls {
+  login: (userId: string) => void;
+}
+
 const ExperimentInternalsDefault: ExperimentInternals = {
   currentTask: '',
   registerTask: () => { throw new Error('Experiment ancestor component not found.'); },
@@ -22,10 +27,15 @@ const ExperimentInternalsDefault: ExperimentInternals = {
   addResult: () => { throw new Error('Experiment ancestor component not found.'); },
 };
 
+const ExperimentControlsDefault: ExperimentControls = {
+  login: () => { throw new Error('Experiment ancestor component not found.'); },
+};
+
 const ExperimentInternalsContext = createContext(ExperimentInternalsDefault);
+const ExperimentControlsContext = createContext(ExperimentControlsDefault);
 
 type ExperimentProps = {
-  genUserId?: () => Promise<string>;
+  loginOptions?: LoginOptions;
   onResultAdded?: (result: Result) => void;
   endScreen?: React.ReactNode;
   useErrorHandling?: boolean;
@@ -34,10 +44,10 @@ type ExperimentProps = {
 };
 
 function Experiment({
+  loginOptions = { loginType: 'skip', loginComponent: <> </> },
   endScreen = <DefaultEndScreen />,
   useErrorHandling = false,
   renderErrorScreen = renderDefaultErrorScreen,
-  genUserId = genUserIdDefault,
   ...otherProps
 }: ExperimentProps) {
   // valid user ID must not be empty
@@ -48,10 +58,10 @@ function Experiment({
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
   useEffect(() => {
-    if (userId == '') {
-      genUserId()
+    if (loginOptions.loginType == 'skip' && userId == '') {
+      genUserIdDefault()
         .then((id) => {
-          setUserId(id);
+          login(id);
         });
     }
     if (useErrorHandling && !errorHandlerEffectRun) {
@@ -70,6 +80,7 @@ function Experiment({
     );
     document.body.appendChild(newDiv);
   }
+
   const registerTask = useCallback((id: string) => {
     // no duplicate IDs allowed
     if (allTasksRef.current.includes(id)) {
@@ -129,11 +140,32 @@ function Experiment({
     addResult,
   }), [taskRef.current, registerTask, unregisterTask, advance, addResult]);
 
+  const login = useCallback((userId: string) => {
+    setUserId(userId);
+  }, [setUserId]);
+
+  const experimentControls = useMemo(() => ({
+    login,
+  }), [login]);
+
+  let toDisplay;
+  if (ended) {
+    toDisplay = endScreen;
+  }
+  else if (userId == '') {
+    toDisplay = loginOptions.loginComponent;
+  }
+  else {
+    toDisplay = otherProps.children;
+  }
+
   return (
     <ExperimentInternalsContext.Provider value={experimentInternals}>
-      {ended ? endScreen : otherProps.children}
+      <ExperimentControlsContext.Provider value={experimentControls}>
+        {toDisplay}
+      </ExperimentControlsContext.Provider>
     </ExperimentInternalsContext.Provider>
   );
 };
 
-export { ExperimentInternalsContext, ExperimentProps, Experiment};
+export { ExperimentInternalsContext, ExperimentControlsContext, ExperimentProps, Experiment };
