@@ -2,7 +2,7 @@ export function DefaultEndScreen() {
   return (
     <>
       <h2>Thank you</h2>
-      <p>That is s all for today!</p>
+      <p>That is all for today!</p>
     </>
   );
 }
