@@ -7,8 +7,8 @@ interface ScreenControls {
 }
 
 const ScreenControlsDefault: ScreenControls = {
-  advance: () => { throw new Error('Task ancestor component not found.'); },
-  addResult: () => { throw new Error('Task ancestor component not found.'); },
+  advance: () => { throw new Error('Screen ancestor component not found.'); },
+  addResult: () => { throw new Error('Screen ancestor component not found.'); },
 };
 
 export const ScreenControlsContext = createContext(ScreenControlsDefault);
