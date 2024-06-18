@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useMemo, useContext, useEffect, useRef, useReducer } from 'react';
-import { ExperimentInternalsContext } from './Experiment.js';
+import { ExperimentInternalsContext } from './core.js';
 
 interface TaskInternals {
   currentScreen: string;
