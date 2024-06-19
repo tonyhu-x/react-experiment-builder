@@ -6,7 +6,7 @@ test('Login component is rendered', async () => {
   await act(async () => {
     render(
       <Experiment loginOptions={{
-        loginType: 'login',
+        login: true,
         loginComponent: <p>Hello</p>,
       }}
       >
@@ -22,7 +22,7 @@ test('Children are immediately displayed if login set to "skip"', async () => {
   await act(async () => {
     render(
       <Experiment loginOptions={{
-        loginType: 'login',
+        login: true,
         loginComponent: <p>Hello</p>,
       }}
       >

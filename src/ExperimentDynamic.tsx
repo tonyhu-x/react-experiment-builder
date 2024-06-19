@@ -1,4 +1,5 @@
-import { Dynamic, ExperimentCore, ExperimentProps } from './core.js';
+import { ExperimentCore } from './core.js';
+import { Dynamic, ExperimentProps } from './core-props.js';
 
 /**
  * Dynamic version of `<Experiment>`.

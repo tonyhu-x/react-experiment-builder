@@ -3,8 +3,8 @@ import { genUserIdDefault } from './utils.js';
 import { Result, db } from './database.js';
 import { DefaultEndScreen, renderDefaultErrorScreen } from './defaults.js';
 import { createRoot } from 'react-dom/client';
-import { LoginOptions } from './login.js';
 import { Task } from './Task.js';
+import type { ExperimentCoreProps, HandleError } from './core-props.js';
 
 let errorHandlerEffectRun = false;
 
@@ -35,39 +35,15 @@ const ExperimentControlsDefault: ExperimentControls = {
 const ExperimentInternalsContext = createContext(ExperimentInternalsDefault);
 const ExperimentControlsContext = createContext(ExperimentControlsDefault);
 
-type Dynamic = {
-  dynamic?: true;
-  taskList: string[];
-  onNextTask: (taskId: string) => void;
-};
-
-type Static = {
-  dynamic: false;
-};
-
-type DynamicOptions = Dynamic | Static;
-
-type ExperimentProps = {
-  children: React.ReactNode;
-  endScreen?: React.ReactNode;
-  loginOptions?: LoginOptions;
-  onResultAdded?: (result: Result) => void;
-  renderErrorScreen?: (event: ErrorEvent | PromiseRejectionEvent) => React.ReactNode;
-  useErrorHandling?: boolean;
-};
-
-type ExperimentCoreProps = ExperimentProps & DynamicOptions;
-
 /**
  * Component that implements core experiment behaviour.
  *
  * The public-facing versions of this component are `<Experiment>` and `<ExperimentDynamic>`.
  */
 function ExperimentCore({
-  loginOptions = { loginType: 'skip', loginComponent: <> </> },
   endScreen = <DefaultEndScreen />,
-  useErrorHandling = false,
-  renderErrorScreen = renderDefaultErrorScreen,
+  errorOptions = { handleError: true, renderErrorScreen: renderDefaultErrorScreen },
+  loginOptions = { login: false },
   ...otherProps
 }: ExperimentCoreProps) {
   // valid user ID must not be empty
@@ -78,13 +54,13 @@ function ExperimentCore({
   const [, forceUpdate] = useReducer(x => x + 1, 0);
 
   useEffect(() => {
-    if (loginOptions.loginType == 'skip' && userId == '') {
+    if (!loginOptions.login && userId == '') {
       genUserIdDefault()
         .then((id) => {
           login(id);
         });
     }
-    if (useErrorHandling && !errorHandlerEffectRun) {
+    if (errorOptions.handleError && !errorHandlerEffectRun) {
       errorHandlerEffectRun = true;
       window.addEventListener('error', errorListener);
       window.addEventListener('unhandledrejection', errorListener);
@@ -109,7 +85,8 @@ function ExperimentCore({
     const newDiv = document.createElement('div');
     const root = createRoot(newDiv);
     root.render(
-      renderErrorScreen(event),
+      // this listener will only be added if errorOptions.handleError is true
+      (errorOptions as HandleError).renderErrorScreen(event),
     );
     document.body.appendChild(newDiv);
   }
@@ -194,7 +171,7 @@ function ExperimentCore({
   if (ended) {
     toDisplay = endScreen;
   }
-  else if (userId == '') {
+  else if (loginOptions.login && userId == '') {
     toDisplay = loginOptions.loginComponent;
   }
   else if (otherProps.dynamic) {
@@ -218,4 +195,4 @@ function ExperimentCore({
   );
 };
 
-export { ExperimentCore, ExperimentInternalsContext, ExperimentControlsContext, ExperimentProps, Dynamic };
+export { ExperimentCore, ExperimentInternalsContext, ExperimentControlsContext };

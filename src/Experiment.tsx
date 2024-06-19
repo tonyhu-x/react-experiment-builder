@@ -1,4 +1,5 @@
-import { ExperimentCore, ExperimentProps } from './core.js';
+import { ExperimentCore } from './core.js';
+import { ExperimentProps } from './core-props.js';
 
 function Experiment(props: ExperimentProps) {
   return (
