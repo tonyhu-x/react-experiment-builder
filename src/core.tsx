@@ -74,9 +74,12 @@ function ExperimentCore({
         throw new Error('Two tasks must not share the same ID.');
       }
       allTasksRef.current = otherProps.taskList;
-      // cannot call advance() directly because in strict mode the effect runs twice
-      updateCurrentTask(allTasksRef.current[0]);
-      otherProps.onNextTask(taskRef.current);
+      // if logging in, we'll update this later to avoid showing the first task's URL
+      if (!loginOptions.login) {
+        // cannot call advance() directly because in strict mode the effect runs twice
+        updateCurrentTask(allTasksRef.current[0]);
+        otherProps.onNextTask(taskRef.current);
+      }
     }
   }, []);
 
@@ -161,7 +164,11 @@ function ExperimentCore({
 
   const login = useCallback((userId: string) => {
     setUserId(userId);
-  }, [setUserId]);
+    if (otherProps.dynamic) {
+      updateCurrentTask(allTasksRef.current[0]);
+      otherProps.onNextTask(taskRef.current);
+    }
+  }, [setUserId, allTasksRef, taskRef]);
 
   const experimentControls = useMemo(() => ({
     login,
