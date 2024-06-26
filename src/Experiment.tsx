@@ -1,11 +1,11 @@
-import { ExperimentCore } from './core.js';
+import { ExperimentImpl } from './core.js';
 import { ExperimentProps } from './core-props.js';
 
 function Experiment(props: ExperimentProps) {
   return (
-    <ExperimentCore dynamic={false} {...props}>
+    <ExperimentImpl dynamic={false} {...props}>
       {props.children}
-    </ExperimentCore>
+    </ExperimentImpl>
   );
 }
 

@@ -55,6 +55,10 @@ type ExperimentProps = {
   errorOptions?: ErrorOptions;
   loginOptions?: LoginOptions;
   onResultAdded?: (result: Result) => void;
+  /**
+   * Max age of local progress (in seconds) to restore.
+   */
+  progressMaxAge?: number;
 };
 
 type Dynamic = {
@@ -69,6 +73,6 @@ type Static = {
 
 type DynamicOptions = Dynamic | Static;
 
-type ExperimentCoreProps = ExperimentProps & DynamicOptions;
+type ExperimentImplProps = ExperimentProps & DynamicOptions;
 
-export { ExperimentProps, ExperimentCoreProps, Dynamic, HandleError };
+export { ExperimentProps, ExperimentImplProps, Dynamic, HandleError };

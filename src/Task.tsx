@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useMemo, useContext, useEffect, useRef, useReducer } from 'react';
 import { ExperimentInternalsContext } from './core.js';
+import { ProgressContext } from './progress.js';
 
 interface TaskInternals {
   currentScreen: string;
@@ -29,6 +30,8 @@ function Task(props: TaskProps) {
   const screenRef = useRef('');
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const experimentInternals = useContext(ExperimentInternalsContext);
+
+  const progress = useContext(ProgressContext);
 
   useEffect(() => {
     if (props.id == '') {
@@ -79,7 +82,7 @@ function Task(props: TaskProps) {
     else {
       experimentInternals.advance();
     }
-  }, [screenRef, allScreensRef]);
+  }, [screenRef, allScreensRef, experimentInternals.advance]);
 
   const addResult = useCallback(async (screenId: string, key: string, val: string) => {
     await experimentInternals.addResult(props.id, screenId, key, val);
@@ -95,7 +98,7 @@ function Task(props: TaskProps) {
 
   return (
     <TaskInternalsContext.Provider value={taskInternals}>
-      {experimentInternals.currentTask == props.id && props.children}
+      {progress.task == props.id && props.children}
     </TaskInternalsContext.Provider>
   );
 };

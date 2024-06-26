@@ -1,15 +1,15 @@
-import { createContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { genUserIdDefault } from './utils.js';
 import { Result, db } from './database.js';
 import { DefaultEndScreen, renderDefaultErrorScreen } from './defaults.js';
 import { createRoot } from 'react-dom/client';
 import { Task } from './Task.js';
-import type { ExperimentCoreProps, HandleError } from './core-props.js';
+import type { ExperimentImplProps, HandleError } from './core-props.js';
+import { ProgressContext, ProgressContextProvider } from './progress.js';
 
 let errorHandlerEffectRun = false;
 
 interface ExperimentInternals {
-  currentTask: string;
   registerTask: (id: string) => void;
   unregisterTask: (id: string) => void;
   advance: () => void;
@@ -21,7 +21,6 @@ interface ExperimentControls {
 }
 
 const ExperimentInternalsDefault: ExperimentInternals = {
-  currentTask: '',
   registerTask: () => { throw new Error('Experiment ancestor component not found.'); },
   unregisterTask: () => { throw new Error('Experiment ancestor component not found.'); },
   advance: () => { throw new Error('Experiment ancestor component not found.'); },
@@ -35,31 +34,21 @@ const ExperimentControlsDefault: ExperimentControls = {
 const ExperimentInternalsContext = createContext(ExperimentInternalsDefault);
 const ExperimentControlsContext = createContext(ExperimentControlsDefault);
 
-/**
- * Component that implements core experiment behaviour.
- *
- * The public-facing versions of this component are `<Experiment>` and `<ExperimentDynamic>`.
- */
 function ExperimentCore({
   endScreen = <DefaultEndScreen />,
   errorOptions = { handleError: true, renderErrorScreen: renderDefaultErrorScreen },
   loginOptions = { login: false },
+  progressMaxAge = 300,
   ...otherProps
-}: ExperimentCoreProps) {
+}: ExperimentImplProps) {
   // valid user ID must not be empty
   const [userId, setUserId] = useState('');
   const [ended, setEnded] = useState(false);
   const allTasksRef = useRef<string[]>([]);
-  const taskRef = useRef('');
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
+  const progress = useContext(ProgressContext);
+  const triedRestoringProgressRef = useRef(false);
 
   useEffect(() => {
-    if (!loginOptions.login && userId == '') {
-      genUserIdDefault()
-        .then((id) => {
-          login(id);
-        });
-    }
     if (errorOptions.handleError && !errorHandlerEffectRun) {
       errorHandlerEffectRun = true;
       window.addEventListener('error', errorListener);
@@ -74,12 +63,12 @@ function ExperimentCore({
         throw new Error('Two tasks must not share the same ID.');
       }
       allTasksRef.current = otherProps.taskList;
-      // if logging in, we'll update this later to avoid showing the first task's URL
-      if (!loginOptions.login) {
-        // cannot call advance() directly because in strict mode the effect runs twice
-        updateCurrentTask(allTasksRef.current[0]);
-        otherProps.onNextTask(taskRef.current);
-      }
+    }
+    if (!loginOptions.login && userId == '') {
+      genUserIdDefault()
+        .then((id) => {
+          login(id); // allTasksRef must be set before login if using dynamic
+        });
     }
   }, []);
 
@@ -106,10 +95,10 @@ function ExperimentCore({
     const newTasks = [...allTasksRef.current, id];
     allTasksRef.current = newTasks;
     // if this is the first task, select it
-    if (newTasks.length == 1) {
-      updateCurrentTask(id);
+    if (newTasks.length == 1 && triedRestoringProgressRef.current && progress.task === '') {
+      progress.updateTask(id);
     }
-  }, [taskRef, allTasksRef]);
+  }, [progress, allTasksRef, triedRestoringProgressRef]);
 
   const unregisterTask = useCallback((id: string) => {
     if (otherProps.dynamic) {
@@ -120,29 +109,24 @@ function ExperimentCore({
       console.log(`Task unregistered with ID ${id}.`);
       const newTasks = allTasksRef.current.filter(task => task != id);
       allTasksRef.current = newTasks;
-      if (newTasks.length == 0) {
-        updateCurrentTask('');
+      if (newTasks.length == 0 && !triedRestoringProgressRef.current) {
+        progress.updateTask('');
       }
     }
-  }, [taskRef, allTasksRef]);
-
-  function updateCurrentTask(id: string) {
-    taskRef.current = id;
-    forceUpdate();
-  };
+  }, [progress, allTasksRef, triedRestoringProgressRef]);
 
   const advance = useCallback(() => {
-    const curIndex = allTasksRef.current.indexOf(taskRef.current);
+    const curIndex = allTasksRef.current.indexOf(progress.task);
     if (curIndex < allTasksRef.current.length - 1) {
-      updateCurrentTask(allTasksRef.current[curIndex + 1]);
+      progress.updateTask(allTasksRef.current[curIndex + 1]);
       if (otherProps.dynamic) {
-        otherProps.onNextTask(taskRef.current);
+        otherProps.onNextTask(allTasksRef.current[curIndex + 1]);
       }
     }
     else {
       setEnded(true);
     }
-  }, [taskRef, allTasksRef]);
+  }, [progress, allTasksRef]);
 
   const addResult = useCallback(async (taskId: string, screenId: string, key: string, val: string) => {
     const result: Result = { taskId, screenId, userId, key, val };
@@ -155,20 +139,26 @@ function ExperimentCore({
   }, [userId, otherProps.onResultAdded]);
 
   const experimentInternals = useMemo(() => ({
-    currentTask: taskRef.current,
     registerTask,
     unregisterTask,
     advance,
     addResult,
-  }), [taskRef.current, registerTask, unregisterTask, advance, addResult]);
+  }), [registerTask, unregisterTask, advance, addResult]);
 
   const login = useCallback((userId: string) => {
     setUserId(userId);
-    if (otherProps.dynamic) {
-      updateCurrentTask(allTasksRef.current[0]);
-      otherProps.onNextTask(taskRef.current);
+    const taskRestored = progress.tryRestoringProgress(userId, progressMaxAge);
+    if (taskRestored !== '' && otherProps.dynamic) {
+      otherProps.onNextTask(taskRestored);
     }
-  }, [setUserId, allTasksRef, taskRef]);
+    else if (taskRestored === '' && allTasksRef.current.length > 0) {
+      progress.updateTask(allTasksRef.current[0]);
+      if (otherProps.dynamic) {
+        otherProps.onNextTask(allTasksRef.current[0]);
+      }
+    }
+    triedRestoringProgressRef.current = true;
+  }, [setUserId, progress, triedRestoringProgressRef, allTasksRef, progress]);
 
   const experimentControls = useMemo(() => ({
     login,
@@ -181,10 +171,11 @@ function ExperimentCore({
   else if (loginOptions.login && userId == '') {
     toDisplay = loginOptions.loginComponent;
   }
-  else if (otherProps.dynamic) {
+  // prevent setting empty task ID on first render
+  else if (otherProps.dynamic && progress.task != '') {
     // wrap in a <Task>
     toDisplay = (
-      <Task id={taskRef.current}>
+      <Task id={progress.task}>
         {otherProps.children}
       </Task>
     );
@@ -202,4 +193,19 @@ function ExperimentCore({
   );
 };
 
-export { ExperimentCore, ExperimentInternalsContext, ExperimentControlsContext };
+/**
+ * Internal component that implements experiment behaviour.
+ *
+ * The public-facing versions of this component are `<Experiment>` and `<ExperimentDynamic>`.
+ */
+function ExperimentImpl({ children, ...otherProps }: ExperimentImplProps) {
+  return (
+    <ProgressContextProvider>
+      <ExperimentCore {...otherProps}>
+        {children}
+      </ExperimentCore>
+    </ProgressContextProvider>
+  )
+};
+
+export { ExperimentImpl, ExperimentInternalsContext, ExperimentControlsContext };

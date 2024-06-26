@@ -1,4 +1,4 @@
-import { ExperimentCore } from './core.js';
+import { ExperimentImpl } from './core.js';
 import { Dynamic, ExperimentProps } from './core-props.js';
 
 /**
@@ -56,9 +56,9 @@ import { Dynamic, ExperimentProps } from './core-props.js';
  */
 function ExperimentDynamic(props: ExperimentProps & Dynamic) {
   return (
-    <ExperimentCore dynamic={true} {...props}>
+    <ExperimentImpl dynamic={true} {...props}>
       {props.children}
-    </ExperimentCore>
+    </ExperimentImpl>
   );
 }
 
