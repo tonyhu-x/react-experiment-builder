@@ -18,6 +18,7 @@ interface ExperimentInternals {
 
 interface ExperimentControls {
   login: (userId: string) => void;
+  userId: string;
 }
 
 const ExperimentInternalsDefault: ExperimentInternals = {
@@ -29,6 +30,7 @@ const ExperimentInternalsDefault: ExperimentInternals = {
 
 const ExperimentControlsDefault: ExperimentControls = {
   login: () => { throw new Error('Experiment ancestor component not found.'); },
+  userId: '',
 };
 
 const ExperimentInternalsContext = createContext(ExperimentInternalsDefault);
@@ -162,7 +164,8 @@ function ExperimentCore({
 
   const experimentControls = useMemo(() => ({
     login,
-  }), [login]);
+    userId,
+  }), [login, userId]);
 
   let toDisplay;
   if (ended) {
