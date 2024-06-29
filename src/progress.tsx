@@ -74,12 +74,14 @@ function ProgressContextProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(PROGRESS_ITEM_TASK);
       localStorage.removeItem(PROGRESS_ITEM_SCREEN);
     }
-    localStorage.setItem(PROGRESS_ITEM_TASK, newTask);
-    localStorage.setItem(PROGRESS_ITEM_TIMESTAMP, Date.now().toString());
+    else {
+      localStorage.setItem(PROGRESS_ITEM_TASK, newTask);
+      localStorage.setItem(PROGRESS_ITEM_TIMESTAMP, Date.now().toString());
+    }
   }, []);
 
   const updateScreen = useCallback((newScreen: string) => {
-    setTask(newScreen);
+    setScreen(newScreen);
     localStorage.setItem(PROGRESS_ITEM_SCREEN, newScreen);
     localStorage.setItem(PROGRESS_ITEM_TIMESTAMP, Date.now().toString());
   }, []);
