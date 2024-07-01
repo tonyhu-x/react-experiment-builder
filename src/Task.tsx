@@ -1,9 +1,8 @@
-import React, { createContext, useCallback, useMemo, useContext, useEffect, useRef, useReducer } from 'react';
+import React, { createContext, useCallback, useMemo, useContext, useEffect, useRef } from 'react';
 import { ExperimentInternalsContext } from './core.js';
 import { ProgressContext } from './progress.js';
 
 interface TaskInternals {
-  currentScreen: string;
   registerScreen: (id: string) => void;
   unregisterScreen: (id: string) => void;
   advance: () => void;
@@ -11,7 +10,6 @@ interface TaskInternals {
 }
 
 const TaskInternalsDefault: TaskInternals = {
-  currentScreen: '',
   registerScreen: () => { throw new Error('Task ancestor component not found.'); },
   unregisterScreen: () => { throw new Error('Task ancestor component not found.'); },
   advance: () => { throw new Error('Task ancestor component not found.'); },
@@ -26,17 +24,16 @@ type TaskProps = {
 };
 
 function Task(props: TaskProps) {
+  if (props.id == '') {
+    throw new Error('Task ID cannot be an empty string.');
+  }
+
   const allScreensRef = useRef<string[]>([]);
-  const screenRef = useRef('');
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
   const experimentInternals = useContext(ExperimentInternalsContext);
 
   const progress = useContext(ProgressContext);
 
   useEffect(() => {
-    if (props.id == '') {
-      throw new Error('Task ID cannot be an empty string.');
-    }
     experimentInternals.registerTask(props.id);
     return () => {
       experimentInternals.unregisterTask(props.id);
@@ -53,9 +50,9 @@ function Task(props: TaskProps) {
     allScreensRef.current = newScreens;
     // if this is the first screen, select it
     if (newScreens.length == 1) {
-      updateCurrentScreen(id);
+      progress.initScreen(id);
     }
-  }, [screenRef, allScreensRef]);
+  }, [allScreensRef]);
 
   const unregisterScreen = useCallback((id: string) => {
     // do nothing if ID is not found
@@ -63,38 +60,29 @@ function Task(props: TaskProps) {
       console.log(`Screen unregistered with ID ${id}.`);
       const newScreens = allScreensRef.current.filter(screen => screen != id);
       allScreensRef.current = newScreens;
-      if (newScreens.length == 0) {
-        updateCurrentScreen('');
-      }
     }
-  }, [screenRef, allScreensRef]);
-
-  function updateCurrentScreen(id: string) {
-    screenRef.current = id;
-    forceUpdate();
-  };
+  }, [allScreensRef]);
 
   const advance = useCallback(() => {
-    const curIndex = allScreensRef.current.indexOf(screenRef.current);
+    const curIndex = allScreensRef.current.indexOf(progress.screen);
     if (curIndex < allScreensRef.current.length - 1) {
-      updateCurrentScreen(allScreensRef.current[curIndex + 1]);
+      progress.updateScreen(allScreensRef.current[curIndex + 1]);
     }
     else {
       experimentInternals.advance();
     }
-  }, [screenRef, allScreensRef, experimentInternals.advance]);
+  }, [progress, allScreensRef, experimentInternals.advance]);
 
   const addResult = useCallback(async (screenId: string, key: string, val: string) => {
     await experimentInternals.addResult(props.id, screenId, key, val);
   }, [props.id, experimentInternals.addResult]);
 
   const taskInternals = useMemo(() => ({
-    currentScreen: screenRef.current,
     registerScreen,
     unregisterScreen,
     advance,
     addResult,
-  }), [screenRef.current, registerScreen, unregisterScreen, advance, addResult]);
+  }), [registerScreen, unregisterScreen, advance, addResult]);
 
   return (
     <TaskInternalsContext.Provider value={taskInternals}>

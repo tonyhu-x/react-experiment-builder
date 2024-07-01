@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- local progress save/restore for screens
+
 ## 0.0.4 - 2024-06-26
 
 ### Added

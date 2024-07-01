@@ -1,5 +1,6 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo } from 'react';
 import { TaskInternalsContext } from './Task.js';
+import { ProgressContext } from './progress.js';
 
 interface ScreenControls {
   advance: () => void;
@@ -24,7 +25,12 @@ interface ScreenControls {
 }
 
 export function Screen(props: ScreenProps) {
+  if (props.id == '') {
+    throw new Error('Screen ID cannot be an empty string.');
+  }
+
   const taskInternals = useContext(TaskInternalsContext);
+  const progress = useContext(ProgressContext);
 
   const advance = useCallback(() => {
     taskInternals.advance();
@@ -40,9 +46,6 @@ export function Screen(props: ScreenProps) {
   }), [advance, addResult]);
 
   useEffect(() => {
-    if (props.id == '') {
-      throw new Error('Screen ID cannot be an empty string.');
-    }
     taskInternals.registerScreen(props.id);
     return () => {
       taskInternals.unregisterScreen(props.id);
@@ -51,7 +54,7 @@ export function Screen(props: ScreenProps) {
 
   return (
     <ScreenControlsContext.Provider value={screenControls}>
-      {taskInternals.currentScreen == props.id && props.children}
+      {progress.screen == props.id && props.children}
     </ScreenControlsContext.Provider>
   );
 }

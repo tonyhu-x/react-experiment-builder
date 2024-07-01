@@ -7,7 +7,7 @@ import { Task } from './Task.js';
 import type { ExperimentImplProps, HandleError } from './core-props.js';
 import { ProgressContext, ProgressContextProvider } from './progress.js';
 
-let errorHandlerEffectRun = false;
+let errorHandlerEffectHasRun = false;
 
 interface ExperimentInternals {
   registerTask: (id: string) => void;
@@ -43,33 +43,34 @@ function ExperimentCore({
   progressMaxAge = 300,
   ...otherProps
 }: ExperimentImplProps) {
+  if (otherProps.dynamic) {
+    if (otherProps.taskList.length == 0) {
+      throw new Error('taskList must not be empty.');
+    }
+    // check if the list contains duplicate entries
+    if (new Set(otherProps.taskList).size != otherProps.taskList.length) {
+      throw new Error('Two tasks must not share the same ID.');
+    }
+  }
+
   // valid user ID must not be empty
   const [userId, setUserId] = useState('');
   const [ended, setEnded] = useState(false);
-  const allTasksRef = useRef<string[]>([]);
+  const allTasksRef = useRef<string[]>(otherProps.dynamic ? otherProps.taskList : []);
   const progress = useContext(ProgressContext);
-  const triedRestoringProgressRef = useRef(false);
+  const loginHasRunRef = useRef(false);
 
   useEffect(() => {
-    if (errorOptions.handleError && !errorHandlerEffectRun) {
-      errorHandlerEffectRun = true;
+    if (errorOptions.handleError && !errorHandlerEffectHasRun) {
+      errorHandlerEffectHasRun = true;
       window.addEventListener('error', errorListener);
       window.addEventListener('unhandledrejection', errorListener);
     }
-    if (otherProps.dynamic) {
-      if (otherProps.taskList.length == 0) {
-        throw new Error('taskList must not be empty.');
-      }
-      // check if the list contains duplicate entries
-      if (new Set(otherProps.taskList).size != otherProps.taskList.length) {
-        throw new Error('Two tasks must not share the same ID.');
-      }
-      allTasksRef.current = otherProps.taskList;
-    }
-    if (!loginOptions.login && userId == '') {
+    if (!loginOptions.login) {
+      // the login function itself makes sure it only runs once
       genUserIdDefault()
         .then((id) => {
-          login(id); // allTasksRef must be set before login if using dynamic
+          login(id);
         });
     }
   }, []);
@@ -97,10 +98,10 @@ function ExperimentCore({
     const newTasks = [...allTasksRef.current, id];
     allTasksRef.current = newTasks;
     // if this is the first task, select it
-    if (newTasks.length == 1 && triedRestoringProgressRef.current && progress.task === '') {
-      progress.updateTask(id);
+    if (newTasks.length == 1) {
+      progress.initTask(id);
     }
-  }, [progress, allTasksRef, triedRestoringProgressRef]);
+  }, [progress, allTasksRef]);
 
   const unregisterTask = useCallback((id: string) => {
     if (otherProps.dynamic) {
@@ -111,11 +112,8 @@ function ExperimentCore({
       console.log(`Task unregistered with ID ${id}.`);
       const newTasks = allTasksRef.current.filter(task => task != id);
       allTasksRef.current = newTasks;
-      if (newTasks.length == 0 && !triedRestoringProgressRef.current) {
-        progress.updateTask('');
-      }
     }
-  }, [progress, allTasksRef, triedRestoringProgressRef]);
+  }, [allTasksRef]);
 
   const advance = useCallback(() => {
     const curIndex = allTasksRef.current.indexOf(progress.task);
@@ -147,20 +145,27 @@ function ExperimentCore({
     addResult,
   }), [registerTask, unregisterTask, advance, addResult]);
 
-  const login = useCallback((userId: string) => {
-    setUserId(userId);
-    const taskRestored = progress.tryRestoringProgress(userId, progressMaxAge);
-    if (taskRestored !== '' && otherProps.dynamic) {
-      otherProps.onNextTask(taskRestored);
+  const login = useCallback((newUserId: string) => {
+    // prevent login from being run twice
+    if (loginHasRunRef.current) {
+      return;
     }
-    else if (taskRestored === '' && allTasksRef.current.length > 0) {
-      progress.updateTask(allTasksRef.current[0]);
-      if (otherProps.dynamic) {
+    loginHasRunRef.current = true;
+    if (newUserId === '') {
+      throw new Error('User ID must not be empty.');
+    }
+    setUserId(newUserId);
+    const [taskRestored] = progress.tryRestoringProgress(newUserId, progressMaxAge);
+    if (otherProps.dynamic) {
+      if (taskRestored !== '') {
+        otherProps.onNextTask(taskRestored);
+      }
+      else {
+        progress.updateTask(allTasksRef.current[0]);
         otherProps.onNextTask(allTasksRef.current[0]);
       }
     }
-    triedRestoringProgressRef.current = true;
-  }, [setUserId, progress, triedRestoringProgressRef, allTasksRef, progress]);
+  }, [loginHasRunRef, setUserId, userId, progress, allTasksRef]);
 
   const experimentControls = useMemo(() => ({
     login,
@@ -208,7 +213,7 @@ function ExperimentImpl({ children, ...otherProps }: ExperimentImplProps) {
         {children}
       </ExperimentCore>
     </ProgressContextProvider>
-  )
+  );
 };
 
 export { ExperimentImpl, ExperimentInternalsContext, ExperimentControlsContext };

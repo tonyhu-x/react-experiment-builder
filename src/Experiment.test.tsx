@@ -81,7 +81,8 @@ test('Progress is restored when conditions are met', async () => {
   unmount();
 
   render(toRender);
-  expect(screen.queryByText('World')).not.toBeNull();
+  await screen.findByText('World');
+  // expect(await screen.queryByText('World')).not.toBeNull();
 });
 
 test('Progress is not restored when older than max age', async () => {
