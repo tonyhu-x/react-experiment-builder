@@ -6,6 +6,10 @@
 
 - local progress save/restore for screens
 
+### Fixed
+
+- an issue which causes a dynamic experiment to crash if the page is refreshed
+
 ## 0.0.4 - 2024-06-26
 
 ### Added

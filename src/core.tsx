@@ -179,8 +179,10 @@ function ExperimentCore({
   else if (loginOptions.login && userId == '') {
     toDisplay = loginOptions.loginComponent;
   }
-  // prevent setting empty task ID on first render
-  else if (otherProps.dynamic && progress.task != '') {
+  else if (otherProps.dynamic && progress.task === '') {
+    toDisplay = false;
+  }
+  else if (otherProps.dynamic) {
     // wrap in a <Task>
     toDisplay = (
       <Task id={progress.task}>
