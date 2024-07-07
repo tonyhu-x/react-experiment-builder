@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.6 - 2024-07-08
+
+### Fixed
+
+- missing dist folder
+
 ## 0.0.5 - 2024-07-08
 
 ### Added
